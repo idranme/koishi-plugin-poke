@@ -1,6 +1,6 @@
 {
   "name": "koishi-plugin-poke",
-  "description": "自定义戳一戳事件响应，仅兼容OneBot平台。",
+  "description": "自定义戳一戳事件响应，仅兼容OneBot、Milky平台。",
   "version": "0.4.1",
   "author": {
     "name": "Zhong Liu",
@@ -28,13 +28,14 @@
   },
   "koishi": {
     "description": {
-      "zh": "自定义戳一戳事件响应，仅兼容OneBot平台。最新版支持发起戳一戳。"
+      "zh": "自定义戳一戳事件响应，仅兼容OneBot、Milky平台。最新版支持发起戳一戳。"
     },
     "locale": [
       "zh"
     ]
   },
   "dependencies": {
-    "koishi-plugin-adapter-onebot": "^6.5.0"
+    "koishi-plugin-adapter-onebot": "^6.5.0",
+    "koishi-plugin-adapter-milky": "^0.0.5"
   }
 }

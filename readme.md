@@ -4,7 +4,7 @@
 
 ## 戳一戳
 
-仅兼容 OneBot 平台，支持 [Lagrange.OneBot] 和 [NapCat]
+仅兼容 OneBot、Milky 平台，支持 [Lagrange.OneBot] 和 [NapCat]
 
 **最新版本NapCat支持主动发起戳一戳，请及时更新**
 

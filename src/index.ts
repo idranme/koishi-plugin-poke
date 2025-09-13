@@ -1,5 +1,6 @@
 import { Context, h, Schema, Session } from "koishi";
-import {} from "koishi-plugin-adapter-onebot";
+import { } from "koishi-plugin-adapter-onebot";
+import { } from "koishi-plugin-adapter-milky";
 
 import zhCN from "./locale/zh-CN.yml";
 import { MessageReply, CommandReply } from "./types";
@@ -81,42 +82,44 @@ export function apply(ctx: Context, config: Config) {
   ctx.i18n.define("zh-CN", zhCN);
 
   ctx
-    .platform("onebot")
+    .platform("onebot", "milky")
     .command("poke [target:user]")
     .action(async ({ session }, target) => {
-      // 不是 onebot 平台，则返回
-      if (!session.onebot) {
-        return;
-      }
-
-      const params = { user_id: session.userId };
-      if (target) {
-        const [platform, id] = parsePlatform(target);
-        if (platform != "onebot") {
-          return;
+      if (session.onebot) {
+        const params = { user_id: session.userId };
+        if (target) {
+          const [platform, id] = parsePlatform(target);
+          if (platform != "onebot") {
+            return;
+          }
+          params.user_id = id;
         }
-        params.user_id = id;
-      }
 
-      if (session.isDirect) {
-        await session.onebot._request("friend_poke", params);
-      } else {
-        params["group_id"] = session.guildId;
-        await session.onebot._request("group_poke", params);
+        if (session.isDirect) {
+          await session.onebot._request("friend_poke", params);
+        } else {
+          params["group_id"] = session.guildId;
+          await session.onebot._request("group_poke", params);
+        }
+      } else if (session.milky) {
+        let userId = session.userId;
+        if (target) {
+          const [platform, id] = parsePlatform(target);
+          if (platform !== "milky") {
+            return;
+          }
+          userId = id;
+        }
+
+        if (session.isDirect) {
+          await session.milky.sendFriendNudge(+userId);
+        } else {
+          await session.milky.sendGroupNudge(+session.guildId, +userId);
+        }
       }
     });
 
-  ctx.platform("onebot").on("notice", async (session: Session) => {
-    // 不是戳一戳事件，则返回
-    if (session.subtype != "poke") {
-      return;
-    }
-
-    // 被戳的不是自己，则返回
-    if (config.filter && session.targetId != session.selfId) {
-      return;
-    }
-
+  async function handlePokeEvent(session: Session) {
     // 冷却中，则返回
     if (config.interval > 0 && cache.has(session.userId)) {
       const ts = cache.get(session.userId)!;
@@ -145,7 +148,63 @@ export function apply(ctx: Context, config: Config) {
       default:
         break;
     }
+  }
+
+  ctx.platform("onebot").on("notice", async (session: Session) => {
+    // 不是戳一戳事件，则返回
+    if (session.subtype != "poke") {
+      return;
+    }
+
+    // 被戳的不是自己，则返回
+    if (config.filter && session.targetId != session.selfId) {
+      return;
+    }
+
+    await handlePokeEvent(session);
   });
+
+  ctx.on("milky/friend-nudge", async (input, bot) => {
+    // 被戳的不是自己，则返回
+    if (config.filter && !input.is_self_receive) {
+      return;
+    }
+
+    const userId = String(input.user_id);
+    const channel = await bot.createDirectChannel(userId);
+    const session = bot.session({
+      channel: {
+        id: channel.id,
+        type: 1
+      },
+      user: {
+        id: userId
+      }
+    });
+
+    await handlePokeEvent(session);
+  })
+
+  ctx.on("milky/group-nudge", async (input, bot) => {
+    // 被戳的不是自己，则返回
+    if (config.filter && input.receiver_id !== +bot.selfId) {
+      return;
+    }
+
+    const userId = String(input.sender_id);
+    const channelId = String(input.group_id)
+    const session = bot.session({
+      channel: {
+        id: channelId,
+        type: 0
+      },
+      user: {
+        id: userId
+      }
+    });
+
+    await handlePokeEvent(session);
+  })
 }
 
 function randomMessage(messages: MessageReply[]) {
