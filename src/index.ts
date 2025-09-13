@@ -192,7 +192,7 @@ export function apply(ctx: Context, config: Config) {
     }
 
     const userId = String(input.sender_id);
-    const channelId = String(input.group_id)
+    const channelId = String(input.group_id);
     const session = bot.session({
       channel: {
         id: channelId,
